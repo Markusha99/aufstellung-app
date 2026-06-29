@@ -1,1 +1,595 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aufstellung</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap');
 
+    :root{
+      --ink:#14161B; --paper:#F6F3EC; --paper-dim:#ECE7DC;
+      --bayern:#DC052D; --dortmund:#FFD100; --pitch:#1C5F3A;
+      --slate:#5B6472; --line:#D8D2C4; --white:#FFFFFF;
+    }
+    *{box-sizing:border-box;}
+    body{margin:0;padding:0;background:var(--paper-dim);}
+    .af-root{
+      font-family:'Inter',sans-serif; color:var(--ink); display:flex; justify-content:center;
+      background:var(--paper-dim); padding:24px 10px; min-height:100vh;
+    }
+    .af-phone{
+      width:400px; max-width:100%; background:var(--paper); border-radius:28px;
+      box-shadow:0 20px 50px rgba(20,22,27,.25); overflow:hidden; border:1px solid var(--line);
+      display:flex; flex-direction:column; min-height:760px;
+    }
+    .af-head{
+      background:var(--ink); color:var(--paper); padding:16px 18px 14px; flex-shrink:0;
+    }
+    .af-head-top{display:flex; justify-content:space-between; align-items:flex-start;}
+    .af-brand{font-family:'Oswald',sans-serif; font-weight:700; font-size:20px; letter-spacing:.5px; text-transform:uppercase;}
+    .af-brand small{display:block; font-family:'Inter',sans-serif; font-weight:400; font-size:10.5px; color:#9BA3AE; text-transform:none; letter-spacing:0; margin-top:2px;}
+    .af-week{font-family:'JetBrains Mono',monospace; font-size:11px; color:#9BA3AE; margin-top:10px;}
+    .af-who{margin-top:2px; font-size:13px; font-weight:600;}
+    .af-who .badge{display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:50%; font-size:9px; font-weight:700; margin-right:6px; font-family:'JetBrains Mono',monospace;}
+
+    .af-body{flex:1; overflow-y:auto; padding:16px 16px 90px;}
+    .af-body::-webkit-scrollbar{width:0;}
+
+    .af-section-title{font-family:'Oswald',sans-serif; font-size:15px; font-weight:600; text-transform:uppercase; letter-spacing:.4px; margin:0 0 4px;}
+    .af-section-sub{font-size:12px; color:var(--slate); margin:0 0 14px; line-height:1.45;}
+
+    .af-grid{width:100%; border-collapse:collapse; margin-bottom:14px;}
+    .af-grid th{font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--slate); font-weight:500; padding-bottom:6px; text-align:center;}
+    .af-grid th:first-child{text-align:left;}
+    .af-grid td.label{font-size:11px; color:var(--slate); padding-right:6px; white-space:nowrap;}
+    .af-cell-wrap{padding:3px;}
+    .af-cell{
+      width:100%; height:34px; border-radius:8px; border:1.5px solid var(--line); background:var(--white);
+      cursor:pointer; transition:.12s; position:relative;
+    }
+    .af-cell:hover{border-color:var(--bayern);}
+    .af-cell.off{background:var(--bayern); border-color:var(--bayern);}
+    .af-cell.off::after{content:"✕"; color:#fff; font-size:13px; position:absolute; inset:0; display:flex; align-items:center; justify-content:center;}
+    .af-legend{display:flex; align-items:center; gap:8px; font-size:11px; color:var(--slate); margin-bottom:18px;}
+    .af-legend .sw{width:14px; height:14px; border-radius:4px; display:inline-block;}
+
+    .af-desired-wrap{margin-bottom:18px;}
+    .af-desired-row{display:flex; gap:6px; margin-top:8px;}
+    .af-desired-btn{
+      flex:1; height:34px; border-radius:9px; border:1.5px solid var(--line); background:var(--white);
+      font-family:'JetBrains Mono',monospace; font-size:12.5px; font-weight:600; color:var(--ink); cursor:pointer; transition:.12s;
+    }
+    .af-desired-btn:hover{border-color:var(--bayern);}
+    .af-desired-btn.active{background:var(--ink); border-color:var(--ink); color:var(--paper);}
+
+    .af-btn{
+      width:100%; padding:13px; border-radius:12px; border:none; font-family:'Inter',sans-serif;
+      font-weight:600; font-size:13.5px; cursor:pointer; text-align:center;
+    }
+    .af-btn-primary{background:var(--ink); color:var(--paper);}
+    .af-btn-ghost{background:transparent; color:var(--bayern); border:1.5px solid var(--bayern); margin-top:10px;}
+    .af-btn-yellow{background:var(--dortmund); color:var(--ink);}
+    .af-btn:disabled{opacity:.5; cursor:not-allowed;}
+
+    .af-card{background:var(--white); border:1px solid var(--line); border-radius:14px; padding:13px 14px; margin-bottom:10px;}
+    .af-card-row{display:flex; justify-content:space-between; align-items:center;}
+
+    .af-match{
+      display:flex; align-items:center; gap:10px; background:var(--ink); color:var(--paper);
+      border-radius:14px; padding:11px 13px; margin-bottom:10px;
+    }
+    .af-match .dot{width:7px; height:7px; border-radius:50%; background:var(--dortmund); flex-shrink:0;}
+    .af-match .txt{flex:1; font-size:12px;}
+    .af-match .txt b{font-family:'Oswald',sans-serif; font-weight:600; font-size:13px;}
+    .af-match .time{font-family:'JetBrains Mono',monospace; font-size:11px; color:#9BA3AE;}
+
+    .af-line-head{display:flex; align-items:center; gap:8px; margin:18px 0 8px;}
+    .af-line-chip{font-family:'Oswald',sans-serif; font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; padding:4px 10px; border-radius:7px; color:#fff;}
+    .af-sched-table{width:100%; border-collapse:collapse; font-size:11.5px;}
+    .af-sched-table th{font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--slate); padding:4px 2px; text-align:center;}
+    .af-sched-table td{text-align:center; padding:3px 2px;}
+    .af-slot{display:inline-flex; align-items:center; justify-content:center; min-height:30px; width:100%; border-radius:7px; font-size:10.5px; font-weight:600; padding:4px 2px;}
+    .af-slot.filled{background:var(--paper-dim); border:1px solid var(--line);}
+    .af-slot.empty{background:transparent; border:1.5px dashed var(--line); color:var(--slate); font-weight:400;}
+
+    .af-tabbar{
+      position:sticky; bottom:0; height:64px; background:#fff;
+      border-top:1px solid var(--line); display:flex; flex-shrink:0;
+    }
+    .af-tab{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; cursor:pointer; color:var(--slate); background:none; border:none; font-family:'Inter',sans-serif;}
+    .af-tab svg{width:20px; height:20px;}
+    .af-tab span{font-size:10px; font-weight:600;}
+    .af-tab.active{color:var(--bayern);}
+
+    .af-user-row{display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--line);}
+    .af-user-row:last-child{border-bottom:none;}
+    .af-avatar{width:30px; height:30px; border-radius:50%; background:var(--ink); color:#fff; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; font-family:'Oswald',sans-serif; flex-shrink:0;}
+    .af-user-name{font-size:12.5px; font-weight:600; flex:1;}
+    .af-user-meta{font-size:10.5px; color:var(--slate);}
+    .af-pill{font-family:'JetBrains Mono',monospace; font-size:9.5px; padding:3px 7px; border-radius:20px; font-weight:600;}
+    .af-pill.ok{background:#E3EFE8; color:var(--pitch);}
+    .af-pill.wait{background:#FBE9E9; color:var(--bayern);}
+    .af-role-select{font-family:'JetBrains Mono',monospace; font-size:10px; border:1px solid var(--line); border-radius:7px; padding:4px 6px; background:#fff;}
+
+    .af-empty{font-size:12px; color:var(--slate); text-align:center; padding:30px 10px; border:1.5px dashed var(--line); border-radius:14px;}
+
+    .af-modal-overlay{position:fixed; inset:0; background:rgba(20,22,27,.55); display:none; align-items:center; justify-content:center; z-index:50; padding:20px;}
+    .af-modal-overlay.show{display:flex;}
+    .af-modal{background:#fff; border-radius:16px; padding:20px; width:100%; max-width:360px;}
+    .af-modal h4{font-family:'Oswald',sans-serif; margin:0 0 10px; font-size:15px;}
+    .af-modal input{width:100%; padding:9px 11px; border:1px solid var(--line); border-radius:9px; font-size:12.5px; margin-bottom:10px; font-family:'Inter',sans-serif;}
+    .af-modal-actions{display:flex; gap:8px;}
+    .af-modal-actions button{flex:1;}
+
+    .af-toast{
+      position:fixed; bottom:80px; left:50%; transform:translateX(-50%);
+      background:var(--ink); color:#fff; border-radius:10px; padding:10px 18px;
+      font-size:12px; text-align:center; opacity:0; transition:.25s; pointer-events:none;
+      white-space:nowrap; z-index:100;
+    }
+    .af-toast.show{opacity:1;}
+
+    .af-loader{display:flex; align-items:center; justify-content:center; padding:40px; color:var(--slate); font-size:13px;}
+    .af-spinner{width:20px; height:20px; border:2px solid var(--line); border-top-color:var(--bayern); border-radius:50%; animation:spin .7s linear infinite; margin-right:10px;}
+    @keyframes spin{to{transform:rotate(360deg)}}
+  </style>
+</head>
+<body>
+
+<div class="af-root">
+  <div class="af-phone">
+    <div class="af-head">
+      <div class="af-head-top">
+        <div class="af-brand">Aufstellung<small>розклад редакції · Telegram Mini App</small></div>
+      </div>
+      <div class="af-week" id="weekLabel">Завантаження...</div>
+      <div class="af-who" id="whoBar"></div>
+    </div>
+
+    <div class="af-body" id="afBody">
+      <div class="af-loader"><div class="af-spinner"></div> Завантаження...</div>
+    </div>
+
+    <div class="af-tabbar" id="tabbar">
+      <button class="af-tab active" data-tab="prefs" onclick="switchTab('prefs')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 4v16"/></svg>
+        <span>Побажання</span>
+      </button>
+      <button class="af-tab" data-tab="schedule" onclick="switchTab('schedule')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M8 5v14M14 5v14"/></svg>
+        <span>Розклад</span>
+      </button>
+      <button class="af-tab" data-tab="matches" onclick="switchTab('matches')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 3v3l3 2M12 21v-3l-3-2M3 12h3l2 3M21 12h-3l-2-3"/></svg>
+        <span>Матчі</span>
+      </button>
+      <button class="af-tab" data-tab="admin" onclick="switchTab('admin')" id="adminTabBtn" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3.2"/><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"/></svg>
+        <span>Адмін</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="af-modal-overlay" id="vacModalOv">
+  <div class="af-modal">
+    <h4>Запит на відпустку</h4>
+    <input id="vacFrom" type="date">
+    <input id="vacTo" type="date">
+    <input id="vacNote" type="text" placeholder="Коментар (необов'язково)">
+    <div class="af-modal-actions">
+      <button class="af-btn af-btn-ghost" style="margin-top:0" onclick="closeVacModal()">Скасувати</button>
+      <button class="af-btn af-btn-primary" onclick="submitVacation()">Надіслати</button>
+    </div>
+  </div>
+</div>
+
+<div class="af-toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════
+//  НАЛАШТУВАННЯ — замінити URL на свій Railway URL
+// ══════════════════════════════════════════════════════════════════
+const API_BASE = "https://ТВІЙ-ПРОЕКТ.up.railway.app/api";
+// ══════════════════════════════════════════════════════════════════
+
+const tg = window.Telegram?.WebApp;
+if (tg) tg.ready();
+
+const DAYS_UA   = ["Пн","Вт","Ср","Чт","Пт","Сб","Нд"];
+const DAYS_KEY  = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+const SHIFTS    = ["ранок","вечір"];
+const SHIFTS_KEY= ["morning","evening"];
+const ROLE_LABEL= {senior:"Senior", middle:"Middle", junior:"Junior", admin:"Admin"};
+const ROLE_INIT = {senior:"S", middle:"M", junior:"J", admin:"A"};
+const RANK      = {senior:3, middle:2, junior:1};
+
+const LINES = [
+  {key:"blogs",  label:"Blogs",      level:"senior", split:false, color:"var(--bayern)"},
+  {key:"welt",   label:"Welt",       level:"junior", split:true,  color:"var(--ink)"},
+  {key:"bayern", label:"Bayern/BVB", level:"middle", split:true,  color:"var(--pitch)"},
+  {key:"de",     label:"DE",         level:"middle", split:true,  color:"#7A5C2E"},
+];
+
+// ── Стан ─────────────────────────────────────────────────────────
+let me = null;           // { id, telegram_id, full_name, role, is_admin }
+let weekData = null;     // відповідь /api/week
+let activeTab = "prefs";
+
+// Локальні зміни побажань (до збереження)
+let localPrefs = {};     // { Mon: {morning: false, evening: true}, ... }
+let localDesired = 5;
+
+// ── API helper ────────────────────────────────────────────────────
+async function api(path, opts = {}) {
+  const initData = tg?.initData || "";
+  const res = await fetch(API_BASE + path, {
+    ...opts,
+    headers: {
+      "Content-Type": "application/json",
+      "X-Init-Data": initData,
+      ...(opts.headers || {}),
+    },
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+// ── Ініціалізація ─────────────────────────────────────────────────
+async function init() {
+  try {
+    me = await api("/me");
+
+    // Показати вкладку адміна якщо адмін
+    if (me.is_admin) {
+      document.getElementById("adminTabBtn").style.display = "";
+    }
+
+    renderWhoBar();
+    await loadWeek();
+  } catch(e) {
+    document.getElementById("afBody").innerHTML =
+      `<div class="af-empty">❌ Помилка з'єднання:<br>${e.message}<br><br>Переконайся що відкрив через Telegram.</div>`;
+  }
+}
+
+async function loadWeek() {
+  try {
+    weekData = await api("/week");
+
+    // Заповнити weekLabel
+    const ws = weekData.week_start;
+    document.getElementById("weekLabel").textContent = `ТИЖДЕНЬ з ${ws}`;
+
+    // Ініціалізувати localPrefs з даних сервера
+    DAYS_KEY.forEach(dk => {
+      const srv = weekData.user_prefs?.days?.[dk] || {};
+      localPrefs[dk] = {
+        morning: srv.unavailable_morning || false,
+        evening: srv.unavailable_evening || false,
+      };
+    });
+    localDesired = weekData.user_prefs?.desired_shifts ?? 5;
+
+    render();
+  } catch(e) {
+    showToast("Помилка завантаження: " + e.message);
+  }
+}
+
+// ── Рендер ───────────────────────────────────────────────────────
+function renderWhoBar() {
+  const el = document.getElementById("whoBar");
+  const role = me.role;
+  const c = role==="senior"?"var(--bayern)":role==="middle"?"var(--dortmund)":"var(--slate)";
+  const tc = role==="middle"?"color:var(--ink)":"color:#fff";
+  el.innerHTML = `<span class="badge" style="background:${c};${tc}">${ROLE_INIT[role]||"A"}</span> ${me.full_name} · ${ROLE_LABEL[role]||role}`;
+}
+
+function render() {
+  document.querySelectorAll(".af-tab").forEach(b =>
+    b.classList.toggle("active", b.dataset.tab === activeTab)
+  );
+  const body = document.getElementById("afBody");
+  if      (activeTab === "prefs")    body.innerHTML = renderPrefsPanel();
+  else if (activeTab === "schedule") body.innerHTML = renderSchedulePanel();
+  else if (activeTab === "matches")  body.innerHTML = renderMatchesPanel();
+  else if (activeTab === "admin")    body.innerHTML = renderAdminPanel();
+}
+
+// ── Побажання ────────────────────────────────────────────────────
+function renderPrefsPanel() {
+  const nextWeekStart = getNextMonday();
+  const dayDates = DAYS_KEY.map((_,i) => {
+    const d = new Date(nextWeekStart);
+    d.setDate(d.getDate() + i);
+    return `${String(d.getDate()).padStart(2,"0")}.${String(d.getMonth()+1).padStart(2,"0")}`;
+  });
+
+  const rows = SHIFTS_KEY.map((sk, si) => {
+    const cells = DAYS_KEY.map(dk => {
+      const off = localPrefs[dk]?.[sk] || false;
+      return `<td class="af-cell-wrap"><div class="af-cell ${off?"off":""}" onclick="toggleCell('${dk}','${sk}')"></div></td>`;
+    }).join("");
+    return `<tr><td class="label">${SHIFTS[si]}</td>${cells}</tr>`;
+  }).join("");
+
+  const desiredBtns = [0,1,2,3,4,5,6,7].map(n =>
+    `<button class="af-desired-btn ${localDesired===n?"active":""}" onclick="setDesired(${n})">${n}</button>`
+  ).join("");
+
+  const alreadySubmitted = weekData?.prefs_submitted;
+  const statusNote = alreadySubmitted
+    ? `<div style="color:var(--pitch);font-size:11px;margin-bottom:10px">✅ Побажання на цей тиждень вже подано</div>`
+    : "";
+
+  return `
+    <div class="af-section-title">Коли не можу працювати</div>
+    <div class="af-section-sub">Натисни на клітинку, якщо в цю зміну не зможеш вийти. Наступний тиждень: ${dayDates[0]} – ${dayDates[6]}</div>
+    ${statusNote}
+    <table class="af-grid">
+      <thead><tr><th></th>${DAYS_UA.map((d,i)=>`<th>${d}<br><span style="opacity:.6">${dayDates[i]}</span></th>`).join("")}</tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div class="af-legend"><span class="sw" style="background:var(--bayern)"></span> не можу &nbsp;&nbsp; <span class="sw" style="background:#fff;border:1.5px solid var(--line)"></span> можу працювати</div>
+    <div class="af-desired-wrap">
+      <div class="af-section-sub" style="margin-bottom:0">Скільки змін готовий(а) взяти цього тижня?</div>
+      <div class="af-desired-row">${desiredBtns}</div>
+    </div>
+    <button class="af-btn af-btn-primary" onclick="savePrefs()">Зберегти побажання на тиждень</button>
+    <button class="af-btn af-btn-ghost" onclick="openVacModal()">🌴 Запросити відпустку</button>
+  `;
+}
+
+window.toggleCell = function(dk, sk) {
+  if (!localPrefs[dk]) localPrefs[dk] = {morning:false, evening:false};
+  localPrefs[dk][sk] = !localPrefs[dk][sk];
+  render();
+};
+
+window.setDesired = function(n) {
+  localDesired = n;
+  render();
+};
+
+window.savePrefs = async function() {
+  const btn = document.querySelector(".af-btn-primary");
+  if(btn) btn.disabled = true;
+
+  try {
+    const days = {};
+    DAYS_KEY.forEach(dk => {
+      days[dk] = {
+        unavailable_morning: localPrefs[dk]?.morning || false,
+        unavailable_evening: localPrefs[dk]?.evening || false,
+      };
+    });
+
+    await api("/prefs", {
+      method: "POST",
+      body: JSON.stringify({
+        week_start: getNextMonday(),
+        desired_shifts: localDesired,
+        days,
+      }),
+    });
+
+    if (weekData) weekData.prefs_submitted = true;
+    showToast("✅ Побажання збережено!");
+    render();
+  } catch(e) {
+    showToast("❌ Помилка: " + e.message);
+  } finally {
+    if(btn) btn.disabled = false;
+  }
+};
+
+// ── Розклад ──────────────────────────────────────────────────────
+function renderSchedulePanel() {
+  const sched = weekData?.schedule;
+  if (!sched) {
+    return `<div class="af-section-title">Розклад на тиждень</div>
+      <div class="af-section-sub">Ще не згенеровано. Розклад з'явиться тут після неділі 20:00.</div>
+      <div class="af-empty">Розклад відсутній</div>`;
+  }
+
+  let html = `<div class="af-section-title">Розклад на тиждень</div>
+    <div class="af-section-sub">Сформовано з урахуванням побажань та рівнів доступу.</div>`;
+
+  LINES.forEach(line => {
+    const shifts = line.split ? ["morning","evening"] : ["full"];
+    const shiftLabels = line.split ? ["ранок","вечір"] : ["день"];
+    html += `<div class="af-line-head"><span class="af-line-chip" style="background:${line.color}">${line.label}</span><span style="font-size:10.5px;color:var(--slate)">${ROLE_LABEL[line.level]}+</span></div>`;
+    html += `<table class="af-sched-table"><thead><tr><th></th>${DAYS_UA.map(d=>`<th>${d}</th>`).join("")}</tr></thead><tbody>`;
+    shifts.forEach((sk, si) => {
+      html += `<tr><td style="font-size:10px;color:var(--slate);text-align:left">${shiftLabels[si]}</td>`;
+      DAYS_KEY.forEach(dk => {
+        const name = sched[line.key]?.[sk]?.[dk] || null;
+        if (name) {
+          html += `<td><span class="af-slot filled">${name.split(" ")[0]}</span></td>`;
+        } else {
+          html += `<td><span class="af-slot empty">—</span></td>`;
+        }
+      });
+      html += `</tr>`;
+    });
+    html += `</tbody></table>`;
+  });
+  return html;
+}
+
+// ── Матчі ────────────────────────────────────────────────────────
+function renderMatchesPanel() {
+  const matches = weekData?.matches || [];
+  let html = `<div class="af-section-title">Матчі цього тижня</div>
+    <div class="af-section-sub">Bayern та Borussia Dortmund — з OpenLigaDB, збірна Німеччини — з API-Football.</div>`;
+
+  if (matches.length === 0) {
+    html += `<div class="af-empty">На цьому тижні матчів немає</div>`;
+  } else {
+    matches.forEach(m => {
+      const dot = m.team_tag==="Bayern" ? "var(--bayern)" : m.team_tag==="BVB" ? "var(--dortmund)" : "var(--pitch)";
+      html += `<div class="af-match">
+        <span class="dot" style="background:${dot}"></span>
+        <div class="txt"><b>${m.home}</b> — ${m.away}<br><span style="color:#9BA3AE">${m.competition}</span></div>
+        <div class="time">${m.weekday_ua}<br>${m.kickoff_kyiv}</div>
+      </div>`;
+    });
+  }
+  return html;
+}
+
+// ── Адмін-панель ─────────────────────────────────────────────────
+let adminData = null;
+
+async function loadAdminData() {
+  try {
+    adminData = await api("/admin/team");
+    render();
+  } catch(e) {
+    showToast("Помилка завантаження команди: " + e.message);
+  }
+}
+
+function renderAdminPanel() {
+  if (!adminData) {
+    loadAdminData();
+    return `<div class="af-loader"><div class="af-spinner"></div> Завантаження команди...</div>`;
+  }
+
+  const pending = adminData.editors.filter(e => !e.prefs_submitted);
+  let html = `<div class="af-section-title">Команда</div>
+    <div class="af-section-sub">${adminData.editors.length} редакторів · ${pending.length} ще не подали побажання.</div>
+    <div class="af-card">`;
+
+  adminData.editors.forEach(e => {
+    const ok = e.prefs_submitted;
+    html += `<div class="af-user-row">
+      <div class="af-avatar">${e.full_name.split(" ").map(p=>p[0]).join("").slice(0,2)}</div>
+      <div style="flex:1">
+        <div class="af-user-name">${e.full_name}</div>
+        <div class="af-user-meta">@${e.username||"—"} · ${ROLE_LABEL[e.role]}</div>
+      </div>
+      <span class="af-pill ${ok?"ok":"wait"}">${ok?"подано":"очікує"}</span>
+    </div>`;
+  });
+  html += `</div>`;
+
+  html += `<button class="af-btn af-btn-yellow" onclick="adminGenerate()">⚙️ Згенерувати розклад</button>`;
+  html += `<button class="af-btn af-btn-ghost" onclick="adminInvite('junior')">+ Запросити редактора (Junior)</button>`;
+
+  // Відпустки на розгляді
+  if (adminData.pending_vacations?.length > 0) {
+    html += `<div class="af-section-title" style="margin-top:22px">Запити на відпустку</div>`;
+    adminData.pending_vacations.forEach(v => {
+      html += `<div class="af-card"><div class="af-card-row">
+        <div><b style="font-size:12.5px">${v.user_name}</b><div class="af-user-meta">${v.date_from} – ${v.date_to}${v.note?" · "+v.note:""}</div></div>
+        <span class="af-pill wait">на розгляді</span>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:9px">
+        <button class="af-btn af-btn-primary" style="padding:8px;font-size:11.5px" onclick="resolveVac(${v.id},'approved')">Схвалити</button>
+        <button class="af-btn af-btn-ghost" style="padding:8px;font-size:11.5px;margin-top:0" onclick="resolveVac(${v.id},'declined')">Відхилити</button>
+      </div></div>`;
+    });
+  }
+
+  return html;
+}
+
+window.adminGenerate = async function() {
+  try {
+    await api("/admin/generate", { method:"POST", body:JSON.stringify({}) });
+    showToast("✅ Розклад згенеровано і надіслано команді!");
+    await loadWeek();
+    adminData = null;
+  } catch(e) {
+    showToast("❌ " + e.message);
+  }
+};
+
+window.adminInvite = async function(role) {
+  try {
+    const data = await api("/admin/invite", { method:"POST", body:JSON.stringify({role}) });
+    const botUser = "aufstellung_bot"; // замінити на username свого бота
+    const link = `https://t.me/${botUser}?start=${data.token}`;
+    await navigator.clipboard.writeText(link).catch(()=>{});
+    showToast("📋 Посилання скопійовано!");
+  } catch(e) {
+    showToast("❌ " + e.message);
+  }
+};
+
+window.resolveVac = async function(id, status) {
+  try {
+    await api(`/admin/vacations/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
+    });
+    showToast(status === "approved" ? "✅ Відпустку схвалено" : "❌ Відпустку відхилено");
+    adminData = null;
+    render();
+  } catch(e) {
+    showToast("❌ " + e.message);
+  }
+};
+
+// ── Відпустка ────────────────────────────────────────────────────
+window.openVacModal = function() {
+  const today = new Date();
+  const nextMon = getNextMonday();
+  document.getElementById("vacFrom").value = nextMon;
+  document.getElementById("vacTo").value = nextMon;
+  document.getElementById("vacModalOv").classList.add("show");
+};
+window.closeVacModal = function() {
+  document.getElementById("vacModalOv").classList.remove("show");
+};
+window.submitVacation = async function() {
+  const from = document.getElementById("vacFrom").value;
+  const to   = document.getElementById("vacTo").value;
+  const note = document.getElementById("vacNote").value;
+  if (!from || !to) { showToast("Вкажи дати відпустки"); return; }
+  try {
+    await api("/vacations", {
+      method: "POST",
+      body: JSON.stringify({ date_from: from, date_to: to, note }),
+    });
+    closeVacModal();
+    showToast("🌴 Запит надіслано адміну!");
+  } catch(e) {
+    showToast("❌ " + e.message);
+  }
+};
+
+// ── Утиліти ──────────────────────────────────────────────────────
+window.switchTab = function(tab) {
+  activeTab = tab;
+  if (tab === "admin" && !adminData) loadAdminData();
+  render();
+};
+
+function getNextMonday() {
+  const d = new Date();
+  const day = d.getDay();
+  const diff = day === 0 ? 1 : 8 - day;
+  d.setDate(d.getDate() + diff);
+  return d.toISOString().split("T")[0];
+}
+
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 2500);
+}
+
+// ── Старт ────────────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>
